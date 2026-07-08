@@ -1,0 +1,814 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Heat Pump Savings Calculator | Resource Innovations</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Red+Hat+Text:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root{
+    /* ===== RI Brand tokens (Resource Innovations Brand Guidelines, 2023) ===== */
+    --ri-blue: #185A7D;        /* PMS 7700 - primary */
+    --ri-blue-dark: #0F3F58;
+    --ri-blue-tint1: #457B97;
+    --ri-blue-tint2: #749CB1;
+    --ri-blue-tint3: #BFD5ED;  /* PMS 2707 */
+    --ri-salmon: #EB6150;      /* PMS 7416 - secondary */
+    --ri-salmon-tint: #F3A096;
+    --ri-gold: #F2B04D;        /* PMS 1365 - secondary */
+    --ri-gold-tint: #F5C071;
+    --ri-royal: #2A60BF;       /* PMS 2386 - secondary */
+    --ri-teal: #3C8170;        /* PMS 6153 - secondary */
+    --ri-black: #433C3C;       /* PMS 4287 */
+    --ri-gray-90: #696363;
+    --ri-gray-60: #B4B1B1;
+    --ri-gray-30: #D9D8D8;
+    --ri-gray-10: #F5F5F5;
+    --ri-white: #FFFFFF;
+
+    --font-display: 'Red Hat Text', -apple-system, 'Segoe UI', sans-serif;
+    --font-body: 'Red Hat Text', -apple-system, 'Segoe UI', sans-serif;
+    --font-data: 'Red Hat Text', 'Avenir Next LT Pro', Arial, sans-serif;
+
+    --radius-sm: 4px;
+    --radius-md: 8px;
+    --radius-lg: 14px;
+    --shadow-card: 0 1px 3px rgba(67,60,60,0.08), 0 1px 2px rgba(67,60,60,0.06);
+    --shadow-elevated: 0 4px 16px rgba(24,90,125,0.12);
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    font-family:var(--font-body);
+    color:var(--ri-black);
+    background:var(--ri-gray-10);
+    line-height:1.5;
+    -webkit-font-smoothing:antialiased;
+  }
+  h1,h2,h3,h4{font-family:var(--font-display); font-weight:700; margin:0 0 .4em 0; color:var(--ri-blue-dark);}
+  p{margin:0 0 .8em 0;}
+  a{color:var(--ri-blue);}
+
+  /* ===== Header / motif ===== */
+  .app-header{
+    background:var(--ri-blue);
+    background-image:
+      radial-gradient(circle at 8% 130%, var(--ri-salmon-tint) 0%, var(--ri-salmon) 12%, transparent 13%),
+      radial-gradient(circle at 18% 150%, var(--ri-royal) 0%, var(--ri-royal) 18%, transparent 19%);
+    background-repeat:no-repeat;
+    color:var(--ri-white);
+    padding:28px 32px 36px 32px;
+    position:relative;
+    overflow:hidden;
+  }
+  .app-header .motif{
+    position:absolute; right:-40px; bottom:-60px; width:280px; height:280px;
+    opacity:0.16; pointer-events:none;
+  }
+  .header-inner{position:relative; z-index:1; max-width:1180px; margin:0 auto;}
+  .header-eyebrow{
+    font-size:12px; letter-spacing:.08em; text-transform:uppercase; font-weight:600;
+    color:var(--ri-gold-tint); margin-bottom:6px;
+  }
+  .app-header h1{color:var(--ri-white); font-size:26px; margin-bottom:4px;}
+  .app-header .subtitle{color:var(--ri-blue-tint3); font-size:14.5px; max-width:680px;}
+
+  /* ===== Layout ===== */
+  .shell{max-width:1180px; margin:0 auto; padding:28px 24px 80px 24px;}
+  .grid{display:grid; grid-template-columns: 380px 1fr; gap:24px;}
+  @media (max-width: 980px){ .grid{grid-template-columns: 1fr;} }
+
+  .card{
+    background:var(--ri-white);
+    border-radius:var(--radius-lg);
+    box-shadow:var(--shadow-card);
+    padding:22px 24px;
+    margin-bottom:20px;
+  }
+  .card h2{font-size:16px; text-transform:uppercase; letter-spacing:.04em; color:var(--ri-blue); border-bottom:2px solid var(--ri-gray-10); padding-bottom:10px; margin-bottom:16px;}
+  .card h3{font-size:14px; color:var(--ri-black); margin-top:18px; margin-bottom:8px;}
+
+  /* ===== Form elements ===== */
+  label{display:block; font-size:12.5px; font-weight:600; color:var(--ri-gray-90); margin-bottom:4px; margin-top:12px;}
+  label:first-child{margin-top:0;}
+  select, input[type=number], input[type=text]{
+    width:100%; padding:9px 10px; border:1.5px solid var(--ri-gray-30); border-radius:var(--radius-sm);
+    font-family:var(--font-data); font-size:14px; color:var(--ri-black); background:var(--ri-white);
+  }
+  select:focus, input:focus{outline:2px solid var(--ri-blue-tint2); outline-offset:1px; border-color:var(--ri-blue);}
+  .field-row{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .field-hint{font-size:11.5px; color:var(--ri-gray-90); margin-top:3px; font-style:italic;}
+  .field-flag{font-size:11.5px; color:var(--ri-salmon); margin-top:3px; font-weight:600;}
+
+  fieldset{border:none; padding:0; margin:0;}
+  .toggle-group{display:flex; gap:8px; margin-top:6px;}
+  .toggle-btn{
+    flex:1; padding:8px 6px; text-align:center; border:1.5px solid var(--ri-gray-30); border-radius:var(--radius-sm);
+    font-size:13px; font-weight:600; color:var(--ri-gray-90); cursor:pointer; background:var(--ri-white); transition:.15s;
+  }
+  .toggle-btn.active{background:var(--ri-blue); border-color:var(--ri-blue); color:var(--ri-white);}
+  .toggle-btn:hover:not(.active){border-color:var(--ri-blue-tint2);}
+
+  .btn-primary{
+    width:100%; background:var(--ri-blue); color:var(--ri-white); border:none; border-radius:var(--radius-sm);
+    padding:13px 18px; font-family:var(--font-display); font-weight:700; font-size:15px; cursor:pointer; margin-top:20px;
+    transition:.15s;
+  }
+  .btn-primary:hover{background:var(--ri-blue-dark);}
+  .btn-secondary{
+    background:var(--ri-white); color:var(--ri-blue); border:1.5px solid var(--ri-blue); border-radius:var(--radius-sm);
+    padding:10px 16px; font-family:var(--font-display); font-weight:700; font-size:13.5px; cursor:pointer;
+  }
+  .btn-secondary:hover{background:var(--ri-blue); color:var(--ri-white);}
+
+  /* ===== Results ===== */
+  .empty-state{
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:70px 30px; text-align:center; color:var(--ri-gray-90);
+  }
+  .empty-state svg{margin-bottom:16px; opacity:.5;}
+
+  .result-summary{display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; margin-bottom:20px;}
+  @media (max-width:700px){ .result-summary{grid-template-columns:1fr;} }
+  .stat-box{
+    background:var(--ri-gray-10); border-radius:var(--radius-md); padding:16px 18px; border-left:4px solid var(--ri-blue);
+  }
+  .stat-box.rtf{border-left-color:var(--ri-gray-60);}
+  .stat-box.engineered{border-left-color:var(--ri-blue);}
+  .stat-box.delta-pos{border-left-color:var(--ri-teal);}
+  .stat-box.delta-neg{border-left-color:var(--ri-salmon);}
+  .stat-label{font-size:11px; text-transform:uppercase; letter-spacing:.05em; color:var(--ri-gray-90); font-weight:700; margin-bottom:6px;}
+  .stat-value{font-family:var(--font-display); font-size:26px; font-weight:700; color:var(--ri-blue-dark); line-height:1.1;}
+  .stat-sub{font-size:12px; color:var(--ri-gray-90); margin-top:4px;}
+
+  table{width:100%; border-collapse:collapse; font-size:13.5px; font-family:var(--font-data);}
+  th{
+    text-align:left; background:var(--ri-blue); color:var(--ri-white); padding:9px 12px; font-size:12px;
+    text-transform:uppercase; letter-spacing:.03em; font-weight:700;
+  }
+  th:first-child{border-top-left-radius:var(--radius-sm);}
+  th:last-child{border-top-right-radius:var(--radius-sm);}
+  td{padding:9px 12px; border-bottom:1px solid var(--ri-gray-10);}
+  tr:nth-child(even) td{background:#FAFBFC;}
+  tr:last-child td{border-bottom:none;}
+  td.num{text-align:right; font-variant-numeric:tabular-nums;}
+  tr.total-row td{font-weight:700; border-top:2px solid var(--ri-blue); background:var(--ri-gray-10) !important;}
+
+  .flag-banner{
+    background:#FDF1EF; border:1.5px solid var(--ri-salmon-tint); color:#8A3A2E; border-radius:var(--radius-sm);
+    padding:10px 14px; font-size:13px; margin:12px 0; display:flex; gap:10px; align-items:flex-start;
+  }
+  .flag-banner .icon{flex-shrink:0; margin-top:1px;}
+
+  details.assumptions{
+    background:var(--ri-gray-10); border-radius:var(--radius-md); padding:4px 16px; margin-top:10px;
+  }
+  details.assumptions summary{
+    cursor:pointer; font-weight:600; font-size:13px; color:var(--ri-blue); padding:12px 0; list-style:none;
+    display:flex; align-items:center; gap:8px;
+  }
+  details.assumptions summary::-webkit-details-marker{display:none;}
+  details.assumptions summary::before{content:'▸'; transition:.15s; display:inline-block;}
+  details.assumptions[open] summary::before{transform:rotate(90deg);}
+  details.assumptions .note-body{padding:0 0 16px 0; font-size:13px; color:var(--ri-gray-90); line-height:1.6;}
+  details.assumptions .note-body p{margin-bottom:8px;}
+  details.assumptions .note-body strong{color:var(--ri-black);}
+
+  .scenario-tabs{display:flex; gap:6px; margin-bottom:18px; flex-wrap:wrap;}
+  .scenario-tab{
+    padding:9px 14px; border-radius:20px; font-size:13px; font-weight:600; cursor:pointer;
+    border:1.5px solid var(--ri-gray-30); color:var(--ri-gray-90); background:var(--ri-white);
+  }
+  .scenario-tab.active{background:var(--ri-blue); border-color:var(--ri-blue); color:var(--ri-white);}
+
+  .export-bar{display:flex; justify-content:flex-end; gap:10px; margin-bottom:18px;}
+
+  .footer-note{text-align:center; font-size:11.5px; color:var(--ri-gray-90); margin-top:30px; padding-top:18px; border-top:1px solid var(--ri-gray-30);}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <svg class="motif" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+    <circle cx="70" cy="130" r="80" fill="#F2B04D"/>
+    <circle cx="130" cy="130" r="80" fill="#EB6150"/>
+  </svg>
+  <div class="header-inner">
+    <div class="header-eyebrow">Resource Innovations · Program Administration Tool</div>
+    <h1>Heat Pump Savings Calculator</h1>
+    <div class="subtitle">Engineered, bin-method savings estimates for electrification rebate sizing — shown alongside current RTF deemed savings for comparison.</div>
+  </div>
+</header>
+
+<div class="shell">
+  <div class="grid">
+
+    <!-- ============ INPUT PANEL ============ -->
+    <div id="input-panel"></div>
+
+    <!-- ============ RESULTS PANEL ============ -->
+    <div id="results-panel">
+      <div class="card">
+        <div class="empty-state">
+          <svg width="56" height="56" viewBox="0 0 24 24" fill="none" stroke="#185A7D" stroke-width="1.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/><circle cx="12" cy="12" r="4"/></svg>
+          <h3 style="color:var(--ri-gray-90)">Enter home and equipment details</h3>
+          <p style="max-width:340px">Fill out the form to generate an engineered savings estimate, compared against current RTF deemed savings for the same scenario.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="footer-note">Resource Innovations · Heat Pump Savings Calculator · Estimates are planning-level; verify against site-specific conditions and current RTF workbooks before final program use.</div>
+</div>
+
+<script id="climate-data" type="application/json">{
+  "dataVintage": "2025-06-30",
+  "datasetBasis": "TMYx 2011-2025 (climate.onebuilding.org). Parsed from uploaded EPW files. Data represents the 15-year typical-meteorological-year period 2011-2025.",
+  "sourceNote": "Bin-hour distributions derived from actual TMYx 2011-2025 EPW hourly dry-bulb temperature records for each station. 5\u00b0F bins summed across all 8,760 annual hours. Design temperatures from ASHRAE Fundamentals 2025 as embedded in EPW header.",
+  "stations": {
+    "seattle": {
+      "name": "Seattle-Tacoma.Intl.AP",
+      "designHeat99": 30,
+      "designCool1": 87,
+      "calcHDD65": 4561.0,
+      "calcCDD65": 497.0,
+      "binEdges": [
+        -20,
+        -15,
+        -10,
+        -5,
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100
+      ],
+      "hours": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        33.0,
+        29.0,
+        158.0,
+        612.0,
+        1482.0,
+        1254.0,
+        1376.0,
+        1279.0,
+        1166.0,
+        587.0,
+        271.0,
+        249.0,
+        162.0,
+        67.0,
+        35.0,
+        0.0,
+        0.0
+      ]
+    },
+    "northbend": {
+      "name": "North Bend (proxy: Seattle-King County Intl / Boeing Field, 727935)",
+      "designHeat99": 30,
+      "designCool1": 86,
+      "calcHDD65": 4358.0,
+      "calcCDD65": 521.0,
+      "binEdges": [
+        -20,
+        -15,
+        -10,
+        -5,
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100
+      ],
+      "hours": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        8.0,
+        5.0,
+        106.0,
+        657.0,
+        1526.0,
+        1119.0,
+        1295.0,
+        1260.0,
+        1198.0,
+        691.0,
+        377.0,
+        293.0,
+        166.0,
+        50.0,
+        8.0,
+        1.0,
+        0.0
+      ],
+      "stationNote": "No TMYx station in Snoqualmie Valley; Boeing Field is the closest available station. North Bend valley floor climate is somewhat cooler/more continental than Boeing Field suggests \u2014 flag results accordingly."
+    },
+    "mtvernon": {
+      "name": "Bellingham.Intl.AP",
+      "designHeat99": 25,
+      "designCool1": 81,
+      "calcHDD65": 5017.0,
+      "calcCDD65": 223.0,
+      "binEdges": [
+        -20,
+        -15,
+        -10,
+        -5,
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100
+      ],
+      "hours": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        24.0,
+        22.0,
+        163.0,
+        863.0,
+        1698.0,
+        1241.0,
+        1301.0,
+        1384.0,
+        1183.0,
+        486.0,
+        219.0,
+        122.0,
+        49.0,
+        5.0,
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "olympia": {
+      "name": "Olympia.Rgnl.AP",
+      "designHeat99": 25,
+      "designCool1": 88,
+      "calcHDD65": 5019.0,
+      "calcCDD65": 481.0,
+      "binEdges": [
+        -20,
+        -15,
+        -10,
+        -5,
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100
+      ],
+      "hours": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        1.0,
+        46.0,
+        23.0,
+        10.0,
+        189.0,
+        754.0,
+        1650.0,
+        1360.0,
+        1414.0,
+        1238.0,
+        840.0,
+        466.0,
+        260.0,
+        232.0,
+        186.0,
+        57.0,
+        23.0,
+        11.0,
+        0.0
+      ]
+    },
+    "ellensburg": {
+      "name": "Ellensburg-Bowers.Field.AP",
+      "designHeat99": 13,
+      "designCool1": 97,
+      "calcHDD65": 6561.0,
+      "calcCDD65": 874.0,
+      "binEdges": [
+        -20,
+        -15,
+        -10,
+        -5,
+        0,
+        5,
+        10,
+        15,
+        20,
+        25,
+        30,
+        35,
+        40,
+        45,
+        50,
+        55,
+        60,
+        65,
+        70,
+        75,
+        80,
+        85,
+        90,
+        95,
+        100
+      ],
+      "hours": [
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        0.0,
+        12.0,
+        35.0,
+        113.0,
+        299.0,
+        396.0,
+        1294.0,
+        1219.0,
+        790.0,
+        658.0,
+        789.0,
+        717.0,
+        764.0,
+        455.0,
+        282.0,
+        339.0,
+        273.0,
+        168.0,
+        73.0,
+        44.0,
+        40.0
+      ]
+    }
+  }
+}</script>
+<script id="reference-data" type="application/json">{
+  "_meta": {
+    "toolDataVintage": "2025-06-30",
+    "description": "Date this reference data bundle was last assembled/reviewed. Distinct from rtfReference.dataVintage, which tracks the specific RTF workbook version (v8.1) these comparison figures are drawn from.",
+    "rtfWorkbookVintage": "2024-11-27"
+  },
+  "rtfReference": {
+    "dataVintage": "2024-11-27",
+    "workbookFile": "2024-11-27-Master_UES_Workbook_v8.xlsx",
+    "sourceNote": "Values extracted directly from the RTF Master UES Workbook v8 (2024-11-27). Measures: 'DHPs for Zonal Heat SF and MH' (ResDHPforZonal_v6_1.xlsm) and 'Centrally Ducted Air Source Heat Pump Upgrades and Conversions' (ResSF&MHConversion&Upgrades_CDHP_v8_1.xlsm). All values are for Single Family (SF) homes; MH (Manufactured Home) values differ slightly and are noted separately.",
+    "structureNote": "RTF savings vary across multiple dimensions beyond HZ. Ductless (DHP Zonal) measure tiers by prior annual electricity consumption (pre-kWh), VBDD R\u00b2 quality, and CZ sub-zone. CDHP (ducted) splits by conversion vs. upgrade and by presence of prior CAC. The 'Any Pre-kWh' rows (no billing-tier filter) are used as the primary comparison when prior billing data is unavailable \u2014 the most appropriate basis for an admin planning tool.",
+    "measureLife": {
+      "DHP_Zonal": 15,
+      "CDHP": 18,
+      "note": "EUL differs by measure type \u2014 15yr for ductless DHP Zonal, 18yr for centrally ducted CDHP."
+    },
+    "ER_to_Ductless": {
+      "measureName": "DHPs for Zonal Heat SF and MH",
+      "workbook": "ResDHPforZonal_v6_1.xlsm",
+      "EUL": 15,
+      "note": "RTF models ductless HP replacing zonal ER heat as the baseline. 'Any Pre-kWh' rows used when prior billing data unavailable.",
+      "SF": {
+        "HZ1": {
+          "CZ1_AnyPreKwh": 1685,
+          "CZ2_AnyPreKwh": 1710,
+          "CZ3_AnyPreKwh": 1945,
+          "representativeValue": 1685,
+          "representativeNote": "CZ1 (most of HZ1 geography) Any Pre-kWh catch-all row",
+          "tiers_CZ1_highR2": {
+            "0_10000": 983,
+            "10001_15000": 2055,
+            "15001_20000": 2476,
+            "gt20000": 3841,
+            "anyPreKwh": 1685
+          },
+          "tiers_CZ1_lowR2": {
+            "0_10000": -728,
+            "10001_15000": 198,
+            "15001_20000": 532,
+            "gt20000": 1585,
+            "anyPreKwh": 1685
+          }
+        },
+        "HZ2": {
+          "CZ1_AnyPreKwh": 882,
+          "CZ2_AnyPreKwh": 908,
+          "CZ3_AnyPreKwh": 1143,
+          "representativeValue": 882,
+          "representativeNote": "CZ1 (Ellensburg) Any Pre-kWh catch-all row",
+          "tiers_CZ1_highR2": {
+            "0_10000": -1249,
+            "10001_15000": 13,
+            "15001_20000": 2037,
+            "gt20000": 1820,
+            "anyPreKwh": 882
+          },
+          "tiers_CZ1_lowR2": {
+            "0_10000": -1660,
+            "10001_15000": -828,
+            "15001_20000": -292,
+            "gt20000": 303,
+            "anyPreKwh": 882
+          }
+        }
+      },
+      "tierNote": "RTF DHP Zonal savings are highly sensitive to prior annual electricity consumption (pre-kWh). The 'Any Pre-kWh' catch-all row is diluted by low-use homes (including some HP-heated homes) and understates savings for typical high-use ER homes. This tool uses the tier-matched RTF value based on estimated whole-home usage when possible, with the Any Pre-kWh row as fallback. Homes with VBDD R\u00b2 < 0.8 (poor correlation between VBDD and usage) may qualify only for the lower-tier values."
+    },
+    "ER_to_Ducted": {
+      "measureName": "Centrally Ducted Air Source Heat Pump Upgrades and Conversions",
+      "workbook": "ResSF&MHConversion&Upgrades_CDHP_v8_1.xlsm",
+      "EUL": 18,
+      "note": "Conversion scenario (FAF replaced by HP). Two sub-scenarios based on whether existing FAF had central AC (CAC).",
+      "SF": {
+        "HZ1": {
+          "withCAC": 3192,
+          "withoutCAC": 2894,
+          "representativeValue": 2894,
+          "representativeNote": "Without CAC is more conservative and more common in PNW ER-heated homes"
+        },
+        "HZ2_3": {
+          "withCAC": 2076,
+          "withoutCAC": 1687,
+          "representativeValue": 1687,
+          "representativeNote": "Without CAC, HZ2/3 combined",
+          "comparatorCaveat": "The RTF CDHP measure covers conversions from all forced-air heating systems including gas furnaces, which dominate in HZ2/HZ3 (Ellensburg, eastern WA). The HZ2/3 UES value (1,687 kWh) reflects a mixed-fuel baseline where most conversions are gas\u2192HP (electric savings only, since gas heat is displaced entirely). For a pure electric resistance\u2192HP conversion in HZ2, actual engineered savings will be substantially higher than this RTF figure, which is NOT an appropriate direct comparator. Interpret the ratio with caution and consider the tier-matched DHP Zonal values as a supplemental reference."
+        }
+      }
+    },
+    "HP_to_Ductless": {
+      "measureName": "DHPs for Zonal Heat SF and MH",
+      "workbook": "ResDHPforZonal_v6_1.xlsm",
+      "EUL": 15,
+      "note": "No distinct HP->Ductless measure in RTF \u2014 DHP Zonal measure is used as proxy since it models against an ER baseline rather than an existing HP. HP->Ductless savings will differ from this RTF figure in practice; use engineered estimate as primary figure for this scenario.",
+      "SF": {
+        "HZ1": {
+          "representativeValue": 1685,
+          "representativeNote": "Same as ER->Ductless; RTF does not separately model HP->Ductless"
+        },
+        "HZ2": {
+          "representativeValue": 882,
+          "representativeNote": "Same as ER->Ductless; RTF does not separately model HP->Ductless"
+        }
+      }
+    },
+    "HP_to_Ducted": {
+      "measureName": "Centrally Ducted Air Source Heat Pump Upgrades and Conversions",
+      "workbook": "ResSF&MHConversion&Upgrades_CDHP_v8_1.xlsm",
+      "EUL": 18,
+      "note": "Upgrade scenario (existing HP replaced by newer HP). RTF savings are modest \u2014 490-608 kWh/yr \u2014 reflecting the relatively small efficiency gap between existing HP and new HP baselines as modeled by RTF. Tax credit eligibility variant has identical kWh savings.",
+      "SF": {
+        "HZ1": {
+          "representativeValue": 490,
+          "representativeNote": "SF, HZ1, upgrade (HP to HP), tax credit eligibility does not affect kWh"
+        },
+        "HZ2_3": {
+          "representativeValue": 500,
+          "representativeNote": "SF, HZ2/3, upgrade (HP to HP)"
+        }
+      }
+    },
+    "DHP_on_FAF": {
+      "measureName": "DHPs for Forced Air Furnace SF and MH",
+      "workbook": "ResDHPonFAF_v4_1.xlsm",
+      "EUL": 15,
+      "note": "Installing ductless HP in home with existing forced-air furnace (gas or ER). Three HZ values for SF.",
+      "SF": {
+        "values": [
+          2550,
+          2570,
+          412
+        ],
+        "note": "Three application tiers within SF; 412 likely represents minimal-savings scenario (e.g., mild climate/low use home). Representative planning value: 2550-2570 for typical applications."
+      }
+    }
+  },
+  "baselineHPCurves": {
+    "sourceNote": "Estimated COP anchor points (47\u00b0F, 17\u00b0F, 5\u00b0F) for legacy heat pump equipment by installation-year vintage. These are planning-level estimates derived from: (1) DOE minimum HSPF efficiency standards by compliance-date era (pre-2006 minimum 6.8 HSPF, 2006-era 7.7 HSPF, 2015-era 8.5 HSPF), which set a floor on what equipment in that era could be; (2) published COP-vs-temperature degradation patterns for single-speed and two-stage ASHP equipment, which show field COP collapsing toward 1.0\u20131.5 at 5\u00b0F for non-cold-climate-rated equipment. No specific ORNL, NREL, or AHRI Directory dataset was directly queried to produce these values \u2014 they are reasoned estimates consistent with publicly available degradation literature. The NEEP ccASHP database was deliberately NOT used as the baseline source, because it lists only cold-climate-qualified products and would substantially overstate the performance of average-vintage legacy equipment being replaced. These curves should be treated as planning estimates with significant uncertainty; actual baseline equipment performance can vary considerably by unit and condition.",
+    "eras": {
+      "pre2010": {
+        "label": "Pre-2010 (>15yr, past EUL)",
+        "installYearMax": 2009,
+        "compressorType": "Single-speed",
+        "legacyHSPF": 6.8,
+        "approxHSPF2": 5.5,
+        "cop47": 3.2,
+        "cop17": 2.0,
+        "cop5": 1.35
+      },
+      "y2010_2014": {
+        "label": "2010-2014",
+        "installYearMin": 2010,
+        "installYearMax": 2014,
+        "compressorType": "Single-speed",
+        "legacyHSPF": 7.7,
+        "approxHSPF2": 6.2,
+        "cop47": 3.4,
+        "cop17": 2.1,
+        "cop5": 1.5
+      },
+      "y2015_2019": {
+        "label": "2015-2019",
+        "installYearMin": 2015,
+        "installYearMax": 2019,
+        "compressorType": "Single/Two-stage",
+        "legacyHSPF": 8.5,
+        "approxHSPF2": 6.9,
+        "cop47": 3.6,
+        "cop17": 2.3,
+        "cop5": 1.7
+      },
+      "y2020_2025": {
+        "label": "2020-2025 (within EUL)",
+        "installYearMin": 2020,
+        "installYearMax": 2025,
+        "compressorType": "Variable speed (standard, non-cold-climate-listed)",
+        "legacyHSPF": 10.0,
+        "approxHSPF2": 8.1,
+        "cop47": 3.8,
+        "cop17": 2.6,
+        "cop5": 2.0
+      }
+    }
+  },
+  "erBaseline": {
+    "sourceNote": "Electric resistance COP = 1.0 by definition. Ducted ER systems incur duct distribution losses; zonal/baseboard ER assumed 100% delivery (no ducts).",
+    "zonalDeliveryEfficiency": 1.0,
+    "ductedDeliveryEfficiency": 1.0,
+    "note": "Ducted ER delivery loss handled via the same duct loss % input field as ducted HP scenarios, applied symmetrically."
+  },
+  "ductLossDefaults": {
+    "sourceNote": "Default duct loss fractions are planning-level estimates based on general industry ranges commonly cited for Pacific Northwest residential duct systems. No specific field measurement dataset was directly queried. Typical ranges cited in energy modeling practice: unconditioned-space ducts 15\u201325%, conditioned-space ducts 5\u201310%, newly sealed ducts 3\u20137%. The defaults here (20% unconditioned, 8% conditioned, 5% new/sealed) are mid-range estimates within those bands. Administrators should override with measured or contractor-estimated values whenever site-specific data is available, as duct losses are highly variable and this input has a significant effect on ducted-system savings estimates.",
+    "unconditionedSpace": 0.2,
+    "conditionedSpace": 0.08,
+    "newSealedDucts": 0.05
+  },
+  "heatPumpAdjustmentFactors": {
+    "sourceNote": "Field performance derate and Heating Load Served (HLS) factors address the well-documented gap between AHRI-rated lab performance and real-world metered outcomes. Without these adjustments, engineering bin-calculations systematically overstate savings relative to regression-calibrated values such as RTF's UES figures. Both factors are planning estimates \u2014 neither was derived by directly querying a specific evaluation dataset in this session.",
+    "fieldPerformanceDerate": {
+      "default": 0.88,
+      "label": "Field Performance Derate",
+      "description": "Estimated ratio of field/installed performance to AHRI-rated lab performance. Set at 0.88 (12% derate) as a planning-level estimate, based on the general finding in heat pump evaluation literature that realized seasonal efficiency is typically 10\u201320% below nameplate ratings, due to installation quality variation, real-world defrost cycling losses, and non-ideal airflow conditions. No specific NEEA impact evaluation or BPA metering study was directly queried to produce this value \u2014 it represents the middle of a commonly reported range. Applied symmetrically to both the legacy baseline heat pump and the new equipment so the comparison is not artificially skewed against the new unit."
+    },
+    "heatingLoadServed": {
+      "description": "Estimated fraction of the home's total envelope heating load actually served by the new HP system. Ducted systems serve the whole duct-connected envelope by design (1.00). Ductless systems, especially fewer-head installations, often leave some rooms on supplemental baseline heat (ER or old HP backup), so the new HP does not physically displace 100% of prior heating energy even if operated as the primary system. The per-head values (1 head: 0.55, 2 heads: 0.72, 3 heads: 0.85, 4+ heads: 0.92) are planning estimates derived from general reasoning about typical residential floor plan coverage relative to the number of indoor units. No specific peer-reviewed study or evaluation dataset was directly queried to set these values. This factor is the single largest driver of the gap between engineering estimates and billing-regression-based RTF deemed savings for ductless systems.",
+      "ducted": 1.0,
+      "ductless": {
+        "1": 0.55,
+        "2": 0.72,
+        "3": 0.85,
+        "4": 0.92
+      }
+    }
+  },
+  "nonHeatingBaseload": {
+    "sourceNote": "Non-heating baseload (lighting, plug loads, water heating, cooking, and other non-HVAC end uses) is estimated at a base rate of 3.6 kWh per square foot per year, scaled by home size. This is a planning-level estimate broadly consistent with the range of non-heating electric consumption observed in Pacific Northwest residential stock assessment data, but no specific RBSA table or report was directly queried to produce this value. The whole-home figure produced by this estimate (baseload + bin-calculated heating + cooling) is used only to compute 'savings as a percentage of estimated whole-home use' for context \u2014 it is not used in the savings or rebate calculation itself. Administrators with access to actual customer billing data should use that instead, which will be more accurate.",
+    "baseKWhPerSqft": 3.6,
+    "sqftAdjustment": {
+      "note": "Baseload kWh/sqft decreases slightly with larger homes (economies of scale in major appliances/water heating relative to floor area).",
+      "breakpoints": [
+        {
+          "maxSqft": 1200,
+          "multiplier": 1.15
+        },
+        {
+          "maxSqft": 1800,
+          "multiplier": 1.05
+        },
+        {
+          "maxSqft": 2400,
+          "multiplier": 1.0
+        },
+        {
+          "maxSqft": 3200,
+          "multiplier": 0.92
+        },
+        {
+          "maxSqft": 999999,
+          "multiplier": 0.85
+        }
+      ]
+    }
+  },
+  "coolingUEC": {
+    "sourceNote": "Cooling energy is estimated from observed unit energy consumption (UEC) patterns rather than envelope conduction physics, because cooling in Pacific Northwest climates is dominated by solar gain through glazing and internal occupant/appliance gains \u2014 neither of which tracks outdoor dry-bulb temperature in a way that a UA-based bin method can represent. The base rates (HZ1: 0.85 kWh/sqft/yr at stock-average SEER; HZ2: 1.95 kWh/sqft/yr) are planning-level estimates broadly consistent with the range of cooling-specific consumption observed in Pacific Northwest residential metering studies, but no specific RBSA table or report row was directly queried to produce these values. The stock-average SEER of 11.5 reflects a rough estimate of the mixed-vintage AC/HP stock average \u2014 not a value pulled from a specific dataset. Cooling savings are scaled by the ratio of stock-average SEER to the specific equipment's SEER2, which isolates the equipment efficiency effect while holding the underlying load (driven by solar/internal gains) constant. These estimates carry meaningful uncertainty and should be treated as planning-level approximations, not engineering calculations.",
+    "byHeatingZone": {
+      "HZ1": {
+        "label": "Heating Zone 1 (Seattle, Mt Vernon, Olympia, North Bend) - marine climate",
+        "stockAvgSEER": 11.5,
+        "kWhPerSqftAtStockAvgSEER": 0.85
+      },
+      "HZ2": {
+        "label": "Heating Zone 2 (Ellensburg) - continental climate",
+        "stockAvgSEER": 11.5,
+        "kWhPerSqftAtStockAvgSEER": 1.95
+      }
+    },
+    "existingAC_SEER_by_era": {
+      "pre2010": 10.0,
+      "y2010_2014": 13.0,
+      "y2015_2019": 14.0,
+      "y2020_2025": 14.3
+    },
+    "additiveLoadAssumptionNote": "When prior AC = None, the same cooling load basis is applied as for the replacement case. This is a documented simplification: homes that previously had no cooling may have somewhat lower innate cooling load (different occupant behavior, more shading, different window area) than homes that already had and used AC, but no direct cross-tabulation of cooling load by prior-AC-presence was available to quantify this difference. Administrators should interpret additive cooling load estimates conservatively."
+  }
+}</script>
+<script>
+  window.__CLIMATE_DATA__ = JSON.parse(document.getElementById('climate-data').textContent);
+  window.__REFERENCE_DATA__ = JSON.parse(document.getElementById('reference-data').textContent);
+</script>
+<script src="engine.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
