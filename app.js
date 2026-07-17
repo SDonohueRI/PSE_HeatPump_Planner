@@ -12,7 +12,15 @@ const LOCATIONS = [
   { key: 'mtvernon', label: 'Mt Vernon', hz: 'HZ1' },
   { key: 'olympia', label: 'Olympia', hz: 'HZ1' },
   { key: 'northbend', label: 'North Bend', hz: 'HZ1' },
-  { key: 'ellensburg', label: 'Ellensburg', hz: 'HZ2' }
+  { key: 'ellensburg', label: 'Ellensburg', hz: 'HZ2' },
+  { key: 'cadmus_c1_coastal_eastern_ma', Label: 'Cluster 1 - Coastal Eastern MA', hz: 'HZ3' },
+  { key: 'cadmus_c2_cape_cod', Label: 'Cluster 2 - Cape Cod', hz: 'HZ3' },
+  { key: 'cadmus_c3_ct_river_valley', Label: 'Cluster 3 - CT River Valley', hz: 'HZ3' },
+  { key: 'cadmus_c4_central_ma_hills', Label: 'Cluster 4 - Central MA Hills', hz: 'HZ3' },
+  { key: 'cadmus_c5_finger_lakes_southern_tier', Label: 'Cluster 5 - Finger Lakes / Southern Tier', hz: 'HZ3' },
+  { key: 'cadmus_c6_lake_ontario_syracuse', Label: 'Cluster 6 - Lake Ontario / Syracuse', hz: 'HZ3' },
+  { key: 'cadmus_c7_hudson_valley', Label: 'Cluster 7 - Hudson Valley', hz: 'HZ3' },
+  { key: 'cadmus_c8_nyc_metro', Label: 'Cluster 8 - NYC Metro', hz: 'HZ3' }
 ];
 
 const state = {
